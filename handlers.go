@@ -11,7 +11,7 @@ import (
 	"github.com/taiypeo/url-shortener/storage"
 )
 
-func createURL(w http.ResponseWriter, req *http.Request) {
+func createURL(urlStorage storage.Storage, w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 	bytes, err := io.ReadAll(req.Body)
 	if err != nil {
@@ -37,7 +37,7 @@ func createURL(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func redirectURL(w http.ResponseWriter, req *http.Request) {
+func redirectURL(urlStorage storage.Storage, w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 	shortUrl := req.PathValue(ID_PATHVALUE)
 	if fullUrl, err := urlStorage.GetFullURL(req.Context(), shortUrl); err != nil {

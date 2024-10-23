@@ -39,7 +39,7 @@ func createURL(urlStorage storage.Storage, w http.ResponseWriter, req *http.Requ
 
 func redirectURL(urlStorage storage.Storage, w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
-	shortUrl := req.PathValue(ID_PATHVALUE)
+	shortUrl := req.PathValue(idPathvalue)
 	if fullUrl, err := urlStorage.GetFullURL(req.Context(), shortUrl); err != nil {
 		if errors.Is(err, storage.ErrShortURLNotFound) {
 			log.Printf("GET 404 /%s", shortUrl)

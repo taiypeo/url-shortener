@@ -7,7 +7,7 @@ import (
 	"github.com/taiypeo/url-shortener/storage"
 )
 
-const ID_PATHVALUE = "id"
+const idPathvalue = "id"
 
 func main() {
 	urlStorage := storage.NewLocalStorage()
@@ -18,7 +18,7 @@ func main() {
 		},
 	)
 	http.HandleFunc(
-		fmt.Sprintf("GET /{%s}", ID_PATHVALUE),
+		fmt.Sprintf("GET /{%s}", idPathvalue),
 		func(w http.ResponseWriter, req *http.Request) {
 			redirectURL(urlStorage, w, req)
 		},

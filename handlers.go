@@ -1,16 +1,17 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"strings"
+
+	"github.com/taiypeo/url-shortener/storage"
 )
 
 func createURL(w http.ResponseWriter, req *http.Request) {
-	const maxShorteningAttempts = 5
-
 	defer req.Body.Close()
 	bytes, err := io.ReadAll(req.Body)
 	if err != nil {
@@ -25,37 +26,33 @@ func createURL(w http.ResponseWriter, req *http.Request) {
 		body = "http://" + body
 	}
 
-	mut.Lock()
-	defer mut.Unlock()
-	for range maxShorteningAttempts {
-		shortURL := buildShortenedURL()
-		if _, ok := urls[shortURL]; !ok {
-			urls[shortURL] = body
-
-			log.Printf("POST 201 / \"%s\"", body)
-			w.WriteHeader(http.StatusCreated)
-			fmt.Fprintf(w, "%s\n", shortURL)
-			return
-		}
+	if shortUrl, err := urlStorage.CreateShortURL(req.Context(), body); err != nil {
+		log.Printf("POST 500 / \"%s\"", body)
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "%v!\n", err)
+	} else {
+		log.Printf("POST 201 / \"%s\"", body)
+		w.WriteHeader(http.StatusCreated)
+		fmt.Fprintf(w, "%s\n", shortUrl)
 	}
-
-	log.Printf("POST 500 / \"%s\"", body)
-	w.WriteHeader(http.StatusInternalServerError)
-	fmt.Fprintf(w, "%v!\n", err)
 }
 
 func redirectURL(w http.ResponseWriter, req *http.Request) {
-	shortURL := req.PathValue(ID_PATHVALUE)
-
-	mut.Lock()
-	defer mut.Unlock()
-	if url, ok := urls[shortURL]; ok {
-		log.Printf("GET 301 /%s", shortURL)
-		w.Header().Set("Location", url)
-		w.WriteHeader(http.StatusMovedPermanently)
+	defer req.Body.Close()
+	shortUrl := req.PathValue(ID_PATHVALUE)
+	if fullUrl, err := urlStorage.GetFullURL(req.Context(), shortUrl); err != nil {
+		if errors.Is(err, storage.ErrShortURLNotFound) {
+			log.Printf("GET 404 /%s", shortUrl)
+			w.WriteHeader(http.StatusNotFound)
+			fmt.Fprintf(w, "Not Found")
+		} else {
+			log.Printf("POST 500 /%s", shortUrl)
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "%v!\n", err)
+		}
 	} else {
-		log.Printf("GET 404 /%s", shortURL)
-		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprintf(w, "Not Found")
+		log.Printf("GET 301 /%s", shortUrl)
+		w.Header().Set("Location", fullUrl)
+		w.WriteHeader(http.StatusMovedPermanently)
 	}
 }

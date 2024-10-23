@@ -3,16 +3,16 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"sync"
+
+	"github.com/taiypeo/url-shortener/storage"
 )
 
 const ID_PATHVALUE = "id"
 
-var urls map[string]string
-var mut sync.Mutex
+var urlStorage storage.Storage
 
 func main() {
-	urls = make(map[string]string)
+	urlStorage = storage.NewLocalStorage()
 
 	http.HandleFunc("POST /{$}", createURL)
 	http.HandleFunc(fmt.Sprintf("GET /{%s}", ID_PATHVALUE), redirectURL)
